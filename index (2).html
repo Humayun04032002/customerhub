@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshMart Mobile App Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font family -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #04D483; /* Vibrant Green */
+            --color-secondary: #FF6B6B; /* Red/Orange for Sale */
+            --color-accent: #3b82f6; /* Blue for cart/location */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+        /* Mobile-first container: fixed width for mobile appearance */
+        #app-container {
+            max-width: 420px;
+            min-height: 100vh;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            position: relative;
+        }
+
+        /* Ensure the body has padding at the bottom for the fixed nav bar */
+        .screen {
+            padding-bottom: 80px; /* Space for the fixed bottom nav */
+        }
+
+        /* Custom scrollbar for better visual fidelity */
+        #app-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        #app-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+        .flash-sale-bg {
+            background: linear-gradient(to right, #FF6B6B, #FF914D);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--color-primary);
+            display: inline-block;
+        }
+        .stepper-line {
+            height: 20px;
+            width: 2px;
+            background-color: #e5e7eb;
+            margin-left: 9px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container" class="relative overflow-y-auto">
+
+    <!-- Screen Containers (All hidden initially except the first one) -->
+    <div id="homepage" class="screen"></div>
+    <div id="productdetails" class="screen hidden"></div>
+    <div id="checkout" class="screen hidden"></div>
+    <div id="tracking" class="screen hidden"></div>
+    <div id="profilepage" class="screen hidden"></div>
+
+    <!-- Fixed Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 w-full max-w-md mx-auto bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-xl">
+        <div class="flex justify-around items-center h-16">
+            <button class="nav-btn flex flex-col items-center justify-center p-2 text-green-600 transition" onclick="showScreen('homepage', this)">
+                <!-- Home Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="text-xs font-medium mt-0.5">Home</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center justify-center p-2 text-gray-500 hover:text-green-600 transition" onclick="showScreen('tracking', this)">
+                <!-- Tracking/Orders Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8c0-4.6 3.6-8.2 8-8.2s8 3.6 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span class="text-xs font-medium mt-0.5">Orders</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center justify-center p-2 text-gray-500 hover:text-green-600 transition" onclick="showScreen('checkout', this)">
+                <!-- Cart Icon -->
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M2.5 2.5h2l2 12h10l2-8h5.5"/><path d="M19 16.5H5.23l-1.39-7H14.5"/></svg>
+                    <span id="nav-cart-count" class="absolute -top-1 -right-1.5 bg-red-500 text-white text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                </div>
+                <span class="text-xs font-medium mt-0.5">Cart</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center justify-center p-2 text-gray-500 hover:text-green-600 transition" onclick="showScreen('profilepage', this)">
+                <!-- Profile Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="text-xs font-medium mt-0.5">Profile</span>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<!-- JavaScript to handle screen switching and content generation -->
+<script>
+    // --- Global State and Initialization ---
+    const APP_STATE = {
+        cartItems: [
+            { id: 1, name: 'Fresh Red Apples', quality: 'Premium Quality', pricePerKg: 3.99, qty: 2, total: 7.98, img: 'https://placehold.co/80x80/FF6B6B/FFFFFF?text=Apple' },
+            { id: 2, name: 'Organic Bananas', quality: 'Fresh • Sweet', pricePerKg: 2.49, qty: 1, total: 2.49, img: 'https://placehold.co/80x80/FFD700/000000?text=Banana' },
+            { id: 3, name: 'Fresh Oranges', quality: 'Juicy • Vitaminc C', pricePerKg: 3.29, qty: 1, total: 3.29, img: 'https://placehold.co/80x80/FFA500/FFFFFF?text=Orange' },
+        ],
+        cartTotal: 13.76,
+        discount: 1.38,
+        total: 15.37,
+        activeScreen: 'homepage',
+        selectedAddress: 'home', // 'home' or 'office'
+        selectedPayment: 'card4532', // 'card4532', 'card8976', 'cash'
+        selectedDeliveryTime: 'express', // 'express' or 'standard'
+        orderProgress: 4, // 1:Confirmed, 2:Preparing, 3:Ready, 4:Out for Delivery, 5:Delivered
+        isLiked: false,
+    };
+
+    // Helper to get total items in cart
+    const getCartItemCount = () => APP_STATE.cartItems.reduce((sum, item) => sum + item.qty, 0);
+
+    // Helper to switch screens
+    const showScreen = (screenId, buttonEl = null) => {
+        document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+        document.getElementById(screenId).classList.remove('hidden');
+        APP_STATE.activeScreen = screenId;
+        window.scrollTo(0, 0); // Scroll to top on screen change
+
+        // Update nav bar active state
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('text-green-600');
+            btn.classList.add('text-gray-500');
+            btn.classList.remove('hover:text-gray-500');
+            btn.classList.add('hover:text-green-600');
+        });
+        if (buttonEl) {
+            buttonEl.classList.add('text-green-600');
+            buttonEl.classList.remove('text-gray-500');
+            buttonEl.classList.add('hover:text-gray-500');
+            buttonEl.classList.remove('hover:text-green-600');
+        }
+
+        // Re-render cart count
+        const cartCountEl = document.getElementById('nav-cart-count');
+        if (cartCountEl) {
+            cartCountEl.innerText = getCartItemCount();
+        }
+
+        // Re-render the specific screen content
+        if (screenId === 'homepage') renderHomepageScreen();
+        else if (screenId === 'productdetails') renderProductDetailsScreen();
+        else if (screenId === 'checkout') renderCheckoutScreen();
+        else if (screenId === 'tracking') renderTrackingScreen();
+        else if (screenId === 'profilepage') renderProfileScreen();
+    };
+
+    // Helper to update cart quantity for an item
+    const updateCartQty = (itemId, change) => {
+        const item = APP_STATE.cartItems.find(i => i.id === itemId);
+        if (item) {
+            item.qty += change;
+            if (item.qty <= 0) {
+                // Remove item if quantity drops to 0 or less
+                APP_STATE.cartItems = APP_STATE.cartItems.filter(i => i.id !== itemId);
+            }
+            // Recalculate totals
+            APP_STATE.cartTotal = APP_STATE.cartItems.reduce((sum, i) => sum + (i.qty * i.pricePerKg), 0);
+            const subtotal = APP_STATE.cartTotal;
+            // Simplified discount calculation for fidelity (assuming a fixed 10% on $13.76)
+            APP_STATE.discount = APP_STATE.cartItems.length > 0 ? 1.38 : 0.00;
+            APP_STATE.total = subtotal + 2.00 - APP_STATE.discount; // Assuming $2.00 delivery fee before discount
+
+            renderCheckoutScreen();
+            const cartCountEl = document.getElementById('nav-cart-count');
+            if (cartCountEl) cartCountEl.innerText = getCartItemCount();
+        }
+    };
+
+    // Helper for rendering icons (lucide icons)
+    const icon = (name, classes = 'w-5 h-5') => {
+        const icons = {
+            'cart': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><circle cx="8" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M2.5 2.5h2l2 12h10l2-8h5.5"/><path d="M19 16.5H5.23l-1.39-7H14.5"/></svg>`,
+            'search': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+            'heart': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${APP_STATE.isLiked ? 'red' : 'none'}" stroke="${APP_STATE.isLiked ? 'red' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+            'back': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+            'plus': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+            'minus': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+            'info': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+            'check-circle': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+            'edit': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+            'trash': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+            'more-vertical': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>`,
+            'user': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+            'phone': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6.7-6.7A19.79 19.79 0 0 1 2 4.18 2 2 0 0 1 4.18 2h3a2 2 0 0 1 2 1.72 17.5 17.5 0 0 0 .96 7.6l.01.01a1 1 0 0 1-.02 1.08l-.23.23a1 1 0 0 0-.27 1.25l1.66 1.66a1 1 0 0 0 1.25-.27l.23-.23a1 1 0 0 1 1.08-.02l.01.01a17.5 17.5 0 0 0 7.6.96 2 2 0 0 1 1.72 2z"/></svg>`,
+        };
+        return icons[name] || '';
+    };
+
+    // --- Components for Reuse ---
+
+    const starRating = (score) => {
+        const fullStars = Math.floor(score);
+        const halfStar = score % 1 >= 0.5;
+        let starsHtml = '';
+        for (let i = 0; i < 5; i++) {
+            if (i < fullStars) {
+                // Full Star (Yellow)
+                starsHtml += `<span class="text-yellow-400">★</span>`;
+            } else if (i === fullStars && halfStar) {
+                // Half Star (Unicode or SVG can be complex, using two stars to simulate half)
+                starsHtml += `<span class="text-yellow-400 opacity-50">★</span>`;
+            } else {
+                // Empty Star (Gray)
+                starsHtml += `<span class="text-gray-300">★</span>`;
+            }
+        }
+        return `<div class="flex items-center space-x-0.5 text-sm">${starsHtml}</div>`;
+    };
+
+    // Full-width product card for vertical display
+    const fullWidthProductCard = (name, price, rating, reviews, imgSrc, onClick) => `
+        <div class="flex bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 p-3 items-center transform transition duration-300 hover:shadow-lg" ${onClick}>
+            <div class="relative flex-shrink-0">
+                <img src="${imgSrc}" alt="${name}" class="w-24 h-24 object-cover rounded-lg">
+                <span class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-bl-lg">25% OFF</span>
+            </div>
+            <div class="flex-grow ml-4">
+                <p class="text-base font-semibold text-gray-800">${name}</p>
+                <div class="flex items-center my-1">
+                    ${starRating(rating)}
+                    <span class="text-xs text-gray-500 ml-1">(${reviews})</span>
+                </div>
+                <div class="flex items-center space-x-2 my-1">
+                    <span class="text-lg font-bold text-green-600">$${price.toFixed(2)}/kg</span>
+                    <span class="text-sm text-gray-400 line-through">$${(price * 1.33).toFixed(2)}</span>
+                </div>
+            </div>
+            <button class="flex-shrink-0 bg-green-500 text-white p-3 rounded-full shadow-md hover:bg-green-600 transition">
+                ${icon('plus', 'w-5 h-5')}
+            </button>
+        </div>
+    `;
+
+    // --- RENDER SCREEN 1: HOMEPAGE ---
+
+    const renderHomepageScreen = () => {
+        const screen = document.getElementById('homepage');
+        screen.innerHTML = `
+            <header class="sticky top-0 z-10 p-4 bg-white shadow-sm flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="p-1 rounded-full bg-green-500/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="20" r="1"/><path d="M12 4v10l-4-4"/></svg>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-800">FreshMart</h1>
+                </div>
+                <div class="relative cursor-pointer" onclick="showScreen('checkout')">
+                    ${icon('cart', 'w-6 h-6 text-gray-700')}
+                    <span class="absolute -top-1 -right-1.5 bg-red-500 text-white text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">${getCartItemCount()}</span>
+                </div>
+            </header>
+
+            <!-- Search Bar -->
+            <div class="p-4">
+                <div class="flex items-center bg-gray-100 rounded-xl p-3 shadow-inner">
+                    ${icon('search', 'w-5 h-5 text-gray-500 mr-2')}
+                    <input type="text" placeholder="Search products..." class="flex-grow bg-transparent text-gray-700 focus:outline-none placeholder-gray-400">
+                </div>
+            </div>
+
+            <!-- Flash Sale Banner -->
+            <div class="px-4 mb-6">
+                <div class="flash-sale-bg text-white p-5 rounded-xl shadow-lg flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold">Flash Sale!</h2>
+                        <p class="text-sm font-medium">Up to 50% off on fresh fruits</p>
+                    </div>
+                    <button class="bg-white text-orange-600 font-semibold text-sm py-2 px-4 rounded-lg shadow-md transition transform hover:scale-105"
+                            onclick="showScreen('productdetails')">
+                        Shop Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shop by Category -->
+            <div class="px-4 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Shop by Category</h2>
+                <div class="flex justify-around items-start">
+                    ${categoryItem('Fruits', 'bg-green-100', 'text-green-600', '🍎')}
+                    ${categoryItem('Vegetables', 'bg-orange-100', 'text-orange-600', '🥕')}
+                    ${categoryItem('Dairy', 'bg-blue-100', 'text-blue-600', '🥛')}
+                    ${categoryItem('Snacks', 'bg-yellow-100', 'text-yellow-600', '🍿')}
+                </div>
+            </div>
+
+            <!-- Featured Products (Full Page Vertical List) -->
+            <div class="px-4 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Featured Products</h2>
+                    <span class="text-green-600 text-sm font-semibold cursor-pointer">View All</span>
+                </div>
+                <div class="space-y-4">
+                    ${fullWidthProductCard('Fresh Red Apples', 3.99, 4.8, 124, 'https://placehold.co/100x100/FF6B6B/FFFFFF?text=Apples', "onclick=\"showScreen('productdetails')\"")}
+                    ${fullWidthProductCard('Organic Bananas', 2.49, 4.5, 90, 'https://placehold.co/100x100/FFD700/000000?text=Bananas', "")}
+                    ${fullWidthProductCard('Fresh Milk (1L)', 4.99, 5.0, 55, 'https://placehold.co/100x100/f0f9ff/000000?text=Milk', "")}
+                    ${fullWidthProductCard('Artisan Bread', 5.99, 4.7, 78, 'https://placehold.co/100x100/A0522D/FFFFFF?text=Bread', "")}
+                </div>
+            </div>
+
+            <!-- Nearby Stores -->
+            <div class="px-4 mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xl font-bold text-gray-800">Nearby Stores</h2>
+                    <span class="text-green-600 text-sm font-semibold cursor-pointer">View All</span>
+                </div>
+                ${nearbyStoreItem('Green Market', 4.9, 0.8, 15, 'bg-green-100', 'text-green-600')}
+                ${nearbyStoreItem('Fresh Basket', 4.6, 1.2, 20, 'bg-orange-100', 'text-orange-600')}
+            </div>
+        `;
+    };
+
+    const categoryItem = (name, bgClass, textClass, emoji) => `
+        <div class="flex flex-col items-center w-1/4">
+            <div class="p-3.5 rounded-xl ${bgClass} shadow-md mb-2">
+                <span class="text-2xl">${emoji}</span>
+            </div>
+            <p class="text-xs font-medium text-gray-600 text-center">${name}</p>
+        </div>
+    `;
+
+    const nearbyStoreItem = (name, rating, distance, time, bgClass, textClass) => `
+        <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-md mb-3">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg ${bgClass} mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 ${textClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8c0-4.6 3.6-8.2 8-8.2s8 3.6 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <div>
+                    <p class="text-base font-semibold text-gray-800">${name}</p>
+                    <div class="flex items-center text-xs text-gray-500">
+                        ${starRating(rating)}
+                        <span class="ml-1">(${rating.toFixed(1)}) • ${distance.toFixed(1)} km</span>
+                    </div>
+                </div>
+            </div>
+            <span class="text-sm font-semibold text-green-600">${time} min</span>
+        </div>
+    `;
+
+    // --- RENDER SCREEN 2: PRODUCT DETAILS ---
+    // (Content remains the same, only removed the floating cart button logic from the script)
+
+    const renderProductDetailsScreen = () => {
+        const screen = document.getElementById('productdetails');
+        const product = {
+            name: 'Fresh Red Apples',
+            tag: 'Organic • Premium Quality',
+            price: 3.99,
+            oldPrice: 5.32,
+            rating: 4.8,
+            reviews: 124,
+            inStock: true,
+            description: 'Fresh, crispy red apples sourced from organic farms. Perfect for snacking, baking, or adding to your daily nutrition. Rich in fiber and vitamins.',
+            unit: 'per kg',
+            mainImg: 'https://placehold.co/400x300/FF6B6B/FFFFFF?text=Fresh+Red+Apples',
+            thumbs: [
+                'https://placehold.co/80x80/FF6B6B/FFFFFF?text=1',
+                'https://placehold.co/80x80/FF6B6B/FFFFFF?text=2',
+                'https://placehold.co/80x80/FF6B6B/FFFFFF?text=3'
+            ],
+            qty: 1
+        };
+
+        const toggleLike = () => {
+            APP_STATE.isLiked = !APP_STATE.isLiked;
+            renderProductDetailsScreen(); // Re-render to update icon color
+        };
+
+        const updateQty = (change) => {
+            product.qty = Math.max(1, product.qty + change);
+            document.getElementById('product-qty').innerText = product.qty;
+        };
+
+        screen.innerHTML = `
+            <!-- Header -->
+            <header class="sticky top-0 z-10 p-4 bg-white shadow-sm flex items-center border-b border-gray-100">
+                <button onclick="showScreen('homepage')">${icon('back', 'w-6 h-6 text-gray-700')}</button>
+                <h1 class="text-lg font-semibold text-gray-800 flex-grow text-center">Product Details</h1>
+                <div class="flex items-center space-x-4">
+                    <button id="like-btn" onclick="(${toggleLike})()">${icon('heart', 'w-6 h-6 text-gray-700')}</button>
+                    <div class="relative cursor-pointer" onclick="showScreen('checkout')">
+                        ${icon('cart', 'w-6 h-6 text-gray-700')}
+                        <span class="absolute -top-1 -right-1.5 bg-red-500 text-white text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">${getCartItemCount()}</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-4 pb-0">
+                <!-- Image Section -->
+                <div class="relative w-full rounded-2xl overflow-hidden shadow-lg mb-4">
+                    <img src="${product.mainImg}" alt="${product.name}" class="w-full h-56 object-cover">
+                    <span class="absolute top-4 right-4 bg-orange-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md">25% OFF</span>
+                </div>
+
+                <!-- Thumbnails -->
+                <div class="flex space-x-3 justify-center mb-6">
+                    ${product.thumbs.map(src => `<img src="${src}" class="w-20 h-20 object-cover rounded-xl border-2 border-green-500/50 cursor-pointer shadow-md">`).join('')}
+                </div>
+
+                <!-- Product Info -->
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">${product.name}</h2>
+                        <p class="text-sm text-gray-500">${product.tag}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-green-600">$${product.price.toFixed(2)}</p>
+                        <p class="text-sm text-gray-400 line-through">$${product.oldPrice.toFixed(2)}</p>
+                    </div>
+                </div>
+
+                <!-- Rating and Stock -->
+                <div class="flex items-center space-x-4 mb-6">
+                    ${starRating(product.rating)}
+                    <span class="text-sm text-gray-600 font-medium">(${product.reviews} reviews)</span>
+                    <span class="flex items-center text-sm font-semibold text-green-600 ml-4">
+                        <span class="dot !w-2 !h-2 mr-1"></span> In Stock
+                    </span>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-6">
+                    <h3 class="text-base font-semibold text-gray-800 mb-1">Description</h3>
+                    <p class="text-sm text-gray-600">${product.description}</p>
+                </div>
+
+                <!-- Quantity Selector -->
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-base font-semibold text-gray-800">Quantity</h3>
+                    <div class="flex items-center border border-gray-300 rounded-full overflow-hidden">
+                        <button class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200" onclick="(${updateQty})(-1)">${icon('minus', 'w-4 h-4')}</button>
+                        <span id="product-qty" class="px-4 text-lg font-semibold text-gray-800 w-12 text-center">${product.qty}</span>
+                        <button class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200" onclick="(${updateQty})(1)">${icon('plus', 'w-4 h-4')}</button>
+                    </div>
+                    <span class="text-sm text-gray-500">${product.unit}</span>
+                    <button class="text-blue-500 p-2 rounded-full hover:bg-blue-50" title="Information on unit pricing">${icon('info', 'w-5 h-5')}</button>
+                </div>
+
+                <!-- Reviews & Ratings -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Reviews & Ratings</h2>
+                        <span class="text-green-600 text-sm font-semibold cursor-pointer">See All</span>
+                    </div>
+                    ${reviewItem('Sarah Johnson', 4, 'Amazing quality! The apples were fresh and crispy. Delivered quickly and well packaged.', '2 days ago')}
+                    ${reviewItem('Mike Chen', 5, 'Good quality apples. My kids love them. Will order again.', '1 week ago')}
+                </div>
+
+                <!-- You might also like -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">You might also like</h2>
+                    <div class="flex overflow-x-auto space-x-4 pb-2">
+                        ${recommendedItem('Organic Bananas', 2.49, 4.5, 'https://placehold.co/150x100/FFD700/000000?text=Banana', 'Organic', 'per kg')}
+                        ${recommendedItem('Fresh Oranges', 3.29, 4.5, 'https://placehold.co/150x100/FFA500/FFFFFF?text=Orange', 'Fresh', 'per kg')}
+                        ${recommendedItem('Green Grapes', 4.99, 4.8, 'https://placehold.co/150x100/7CFC00/FFFFFF?text=Grapes', 'Sweet', 'per kg')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Footer Price/Action Bar -->
+            <footer class="fixed bottom-16 w-full max-w-md mx-auto p-4 bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl z-40">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-500">Total Price</p>
+                        <p class="text-2xl font-bold text-gray-800">$${product.price.toFixed(2)}</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="border border-green-600 text-green-600 font-semibold py-3 px-6 rounded-xl hover:bg-green-50 transition">Add to Cart</button>
+                        <button class="bg-green-600 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-green-700 transition" onclick="showScreen('checkout')">Buy Now</button>
+                    </div>
+                </div>
+            </footer>
+        `;
+    };
+
+    const reviewItem = (name, rating, text, time) => `
+        <div class="flex items-start space-x-3 mb-4 p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+            <img src="https://placehold.co/40x40/9CA3AF/FFFFFF?text=${name.split(' ').map(n=>n[0]).join('')}" class="w-10 h-10 rounded-full object-cover mt-1">
+            <div class="flex-grow">
+                <div class="flex justify-between items-center">
+                    <p class="font-semibold text-gray-800">${name}</p>
+                    <div class="text-xs text-gray-400">${time}</div>
+                </div>
+                <div class="flex items-center mb-1">
+                    ${starRating(rating)}
+                </div>
+                <p class="text-sm text-gray-600">${text}</p>
+            </div>
+        </div>
+    `;
+
+    const recommendedItem = (name, price, rating, imgSrc, tag, unit) => `
+        <div class="flex-shrink-0 w-36 bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+            <img src="${imgSrc}" alt="${name}" class="w-full h-24 object-cover">
+            <div class="p-3">
+                <p class="text-sm font-semibold text-gray-800 truncate">${name}</p>
+                <div class="flex items-center my-1">
+                    ${starRating(rating)}
+                    <span class="text-xs text-gray-500 ml-1">(${rating.toFixed(1)})</span>
+                </div>
+                <p class="text-sm font-bold text-gray-800">$${price.toFixed(2)}/${unit}</p>
+            </div>
+        </div>
+    `;
+
+
+    // --- RENDER SCREEN 3: CART & CHECKOUT ---
+    // (Content remains the same, only removed the floating cart button logic from the script)
+
+    const renderCheckoutScreen = () => {
+        const screen = document.getElementById('checkout');
+
+        // Function to handle radio button updates and re-render
+        const updateAddress = (val) => {
+            APP_STATE.selectedAddress = val;
+            renderCheckoutScreen();
+        };
+        const updatePayment = (val) => {
+            APP_STATE.selectedPayment = val;
+            renderCheckoutScreen();
+        };
+        const updateDelivery = (val) => {
+            APP_STATE.selectedDeliveryTime = val;
+            renderCheckoutScreen();
+        };
+
+        const cartItemsHtml = APP_STATE.cartItems.map(item => `
+            <div class="flex items-center justify-between py-4 border-b border-gray-100 last:border-b-0">
+                <img src="${item.img}" alt="${item.name}" class="w-16 h-16 object-cover rounded-lg mr-4">
+                <div class="flex-grow">
+                    <p class="font-semibold text-gray-800">${item.name}</p>
+                    <p class="text-xs text-gray-500">${item.quality}</p>
+                    <p class="text-sm font-medium text-gray-400">$${item.pricePerKg.toFixed(2)} each</p>
+                </div>
+                <div class="flex flex-col items-end space-y-1">
+                    <button onclick="updateCartQty(${item.id}, 0)" class="text-red-400 hover:text-red-600 p-1">
+                        ${icon('trash', 'w-4 h-4')}
+                    </button>
+                    <div class="flex items-center text-sm font-semibold text-gray-800">
+                        <button class="text-gray-500 hover:text-gray-800" onclick="updateCartQty(${item.id}, -1)">${icon('minus', 'w-4 h-4')}</button>
+                        <span class="mx-2">${item.qty}</span>
+                        <button class="text-gray-500 hover:text-gray-800" onclick="updateCartQty(${item.id}, 1)">${icon('plus', 'w-4 h-4')}</button>
+                    </div>
+                </div>
+                <span class="ml-4 text-lg font-bold text-green-600">$${(item.qty * item.pricePerKg).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const orderSummaryHtml = `
+            <div class="space-y-2 text-gray-700">
+                <div class="flex justify-between">
+                    <p>Subtotal (${getCartItemCount()} Items)</p>
+                    <p class="font-medium">$${APP_STATE.cartTotal.toFixed(2)}</p>
+                </div>
+                <div class="flex justify-between">
+                    <p>Delivery Fee</p>
+                    <p class="font-medium">$2.00</p>
+                </div>
+                <div class="flex justify-between text-red-500 font-medium">
+                    <p class="flex items-center">Discount (SAVE10)</p>
+                    <p>-$${APP_STATE.discount.toFixed(2)}</p>
+                </div>
+            </div>
+            <div class="flex justify-between pt-4 mt-4 border-t border-gray-200">
+                <p class="text-xl font-bold text-gray-800">Total</p>
+                <p class="text-xl font-bold text-green-600">$${(APP_STATE.cartTotal + 2.00 - APP_STATE.discount).toFixed(2)}</p>
+            </div>
+        `;
+
+        screen.innerHTML = `
+            <!-- Header -->
+            <header class="sticky top-0 z-10 p-4 bg-white shadow-sm flex items-center border-b border-gray-100">
+                <button onclick="showScreen('homepage')">${icon('back', 'w-6 h-6 text-gray-700')}</button>
+                <h1 class="text-lg font-semibold text-gray-800 flex-grow text-center">Cart & Checkout</h1>
+                <div class="w-6 h-6"></div> <!-- Spacer -->
+            </header>
+
+            <div class="p-4 space-y-8">
+                <!-- Your Items -->
+                <section>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Your Items (${APP_STATE.cartItems.length})</h2>
+                    <div class="bg-white rounded-xl shadow-md p-4 space-y-4">
+                        ${cartItemsHtml}
+                    </div>
+                </section>
+
+                <!-- Promo Code -->
+                <section>
+                    <div class="flex bg-white rounded-xl shadow-md p-2 border border-gray-200">
+                        <input type="text" placeholder="Promo Code" value="Save10" class="flex-grow p-2 focus:outline-none rounded-l-xl">
+                        <button class="bg-green-600 text-white font-semibold py-2 px-6 rounded-xl hover:bg-green-700 transition">Apply</button>
+                    </div>
+                    <div class="bg-green-50 text-green-700 text-sm font-medium p-3 mt-3 rounded-lg flex items-center">
+                        ${icon('check-circle', 'w-4 h-4 mr-2')}
+                        SAVE10 applied! You saved $${APP_STATE.discount.toFixed(2)}
+                    </div>
+                </section>
+
+                <!-- Order Summary -->
+                <section>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Order Summary</h2>
+                    <div class="bg-white rounded-xl shadow-md p-4">
+                        ${orderSummaryHtml}
+                    </div>
+                </section>
+
+                <!-- Delivery Address -->
+                <section>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Delivery Address</h2>
+                    ${addressOption('home', 'Home', '123 Main Street, Apt 4B, Dhaka 1215, Bangladesh', APP_STATE.selectedAddress, updateAddress)}
+                    ${addressOption('office', 'Office', '456 Business Ave, Floor 12, Dhaka 1000, Bangladesh', APP_STATE.selectedAddress, updateAddress)}
+                    <button class="text-green-600 font-semibold mt-4 flex items-center hover:text-green-700 transition">
+                        ${icon('plus', 'w-4 h-4 mr-2')} Add New Address
+                    </button>
+                </section>
+
+                <!-- Payment Method -->
+                <section>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Payment Method</h2>
+                    ${paymentOption('card4532', 'Visa', '**** **** 4532 • Expires 12/25', APP_STATE.selectedPayment, 'bg-blue-500', updatePayment)}
+                    ${paymentOption('card8976', 'Mastercard', '**** **** 8976 • Expires 08/26', APP_STATE.selectedPayment, 'bg-red-500', updatePayment)}
+                    ${paymentOption('cash', 'Cash on Delivery', 'Pay when you receive', APP_STATE.selectedPayment, 'bg-green-600', updatePayment)}
+                    <button class="text-green-600 font-semibold mt-4 flex items-center hover:text-green-700 transition">
+                        ${icon('plus', 'w-4 h-4 mr-2')} Add Payment Method
+                    </button>
+                </section>
+
+                <!-- Delivery Time -->
+                <section class="mb-24">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Delivery Time</h2>
+                    <div class="flex p-1 bg-gray-100 rounded-full">
+                        <button class="w-1/2 text-center py-2 rounded-full font-semibold transition ${APP_STATE.selectedDeliveryTime === 'express' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}"
+                            onclick="updateDelivery('express')">
+                            Express <span class="text-xs text-gray-400 block">30-45 mins</span>
+                        </button>
+                        <button class="w-1/2 text-center py-2 rounded-full font-semibold transition ${APP_STATE.selectedDeliveryTime === 'standard' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}"
+                            onclick="updateDelivery('standard')">
+                            Standard <span class="text-xs text-gray-400 block">1-2 hours</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Fixed Footer Place Order Bar -->
+            <footer class="fixed bottom-16 w-full max-w-md mx-auto p-4 bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl z-40">
+                <div class="flex justify-between items-center mb-3">
+                    <p class="text-base font-medium text-gray-500">Total Amount</p>
+                    <p class="text-2xl font-bold text-green-600">$${(APP_STATE.cartTotal + 2.00 - APP_STATE.discount).toFixed(2)}</p>
+                </div>
+                <button class="w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 transition" onclick="showScreen('tracking')">
+                    Place Order
+                </button>
+                <p class="text-xs text-center text-gray-400 mt-2">By placing order, you agree to our <a href="#" class="underline">Terms & Conditions</a></p>
+            </footer>
+        `;
+    };
+
+    const addressOption = (id, title, details, selected, handler) => `
+        <label for="address-${id}" class="block bg-white rounded-xl shadow-md p-4 mb-3 border ${selected === id ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-200'} cursor-pointer transition">
+            <div class="flex justify-between items-start">
+                <div class="flex items-start">
+                    <input type="radio" id="address-${id}" name="delivery-address" value="${id}" class="mt-1 mr-3 h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300"
+                        ${selected === id ? 'checked' : ''} onchange="(${handler})('${id}')">
+                    <div>
+                        <p class="font-semibold text-gray-800">${title}</p>
+                        <p class="text-sm text-gray-600">${details}</p>
+                    </div>
+                </div>
+                ${selected === id ? `<button class="text-gray-500 hover:text-gray-700">${icon('edit', 'w-5 h-5')}</button>` : ''}
+            </div>
+        </label>
+    `;
+
+    const paymentOption = (id, title, details, selected, iconBg, handler) => `
+        <label for="payment-${id}" class="block bg-white rounded-xl shadow-md p-4 mb-3 border ${selected === id ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-200'} cursor-pointer transition">
+            <div class="flex items-center">
+                <input type="radio" id="payment-${id}" name="payment-method" value="${id}" class="mt-1 mr-3 h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300"
+                    ${selected === id ? 'checked' : ''} onchange="(${handler})('${id}')">
+                <div class="p-2 rounded-lg mr-3 ${iconBg}">
+                    ${id === 'cash' ? `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`}
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800">${title}</p>
+                    <p class="text-sm text-gray-600">${details}</p>
+                </div>
+            </div>
+        </label>
+    `;
+
+    // --- RENDER SCREEN 4: ORDER TRACKING ---
+
+    const renderTrackingScreen = () => {
+        const screen = document.getElementById('tracking');
+
+        const orderItemsHtml = `
+            ${trackingOrderItem('Margherita Pizza', 'Large • Thin Crust', 18.99)}
+            ${trackingOrderItem('Caesar Salad', 'Regular • Extra Dressing', 12.50)}
+        `;
+
+        const orderProgress = (step, title, detail, currentStep) => {
+            const isActive = step <= currentStep;
+            const isCompleted = step < currentStep;
+            let iconHtml = '';
+            let textColor = 'text-gray-400';
+            let dotColor = 'bg-gray-400';
+
+            if (isCompleted) {
+                iconHtml = icon('check-circle', 'w-5 h-5 text-green-600');
+                textColor = 'text-gray-800 font-medium';
+                dotColor = 'bg-green-600';
+            } else if (isActive && step === currentStep) {
+                iconHtml = `<div class="p-1 rounded-full bg-blue-500">${icon('info', 'w-4 h-4 text-white')}</div>`;
+                textColor = 'text-blue-600 font-semibold';
+            } else {
+                iconHtml = `<div class="dot !w-4 !h-4 ${dotColor}"></div>`;
+                textColor = 'text-gray-500';
+            }
+
+            return `
+                <div class="flex">
+                    <div class="flex flex-col items-center mr-4">
+                        <div class="p-0.5">${iconHtml}</div>
+                        ${step < 5 ? `<div class="stepper-line ${isCompleted ? '!bg-green-600' : ''}"></div>` : ''}
+                    </div>
+                    <div class="pb-6">
+                        <p class="text-base font-semibold ${textColor}">${title}</p>
+                        <p class="text-sm text-gray-500">${detail}</p>
+                    </div>
+                </div>
+            `;
+        };
+
+        const currentStep = APP_STATE.orderProgress;
+
+        screen.innerHTML = `
+            <!-- Header -->
+            <header class="sticky top-0 z-10 p-4 bg-white shadow-sm flex items-center justify-between border-b border-gray-100">
+                <button onclick="showScreen('homepage')">${icon('back', 'w-6 h-6 text-gray-700')}</button>
+                <h1 class="text-lg font-semibold text-gray-800">Order Tracking</h1>
+                <button>${icon('more-vertical', 'w-6 h-6 text-gray-700')}</button>
+            </header>
+
+            <div class="p-4 space-y-6">
+
+                <!-- Order ID and Summary Card -->
+                <div class="bg-white rounded-xl shadow-lg p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-sm font-medium text-gray-500">Order ID</p>
+                        <span class="text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full">Out for Delivery</span>
+                    </div>
+                    <p class="text-lg font-bold text-gray-800 mb-4">#ORD-2024-1547</p>
+
+                    <div class="space-y-3 pb-4">
+                        ${orderItemsHtml}
+                    </div>
+
+                    <div class="flex justify-between pt-4 border-t border-gray-100">
+                        <p class="text-base font-bold text-gray-800">Total Amount</p>
+                        <p class="text-base font-bold text-gray-800">$31.49</p>
+                    </div>
+                </div>
+
+                <!-- Order Progress -->
+                <div class="bg-white rounded-xl shadow-lg p-5">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Order Progress</h2>
+                    ${orderProgress(1, 'Order Confirmed', 'Your order has been confirmed', currentStep)}
+                    ${orderProgress(2, 'Preparing', 'Restaurant is preparing your order', currentStep)}
+                    ${orderProgress(3, 'Ready for Pickup', 'Order ready, driver assigned', currentStep)}
+                    ${orderProgress(4, 'Out for Delivery', 'Your order is on the way', currentStep)}
+                    ${orderProgress(5, 'Delivered', 'Order delivered successfully', currentStep)}
+                </div>
+
+                <!-- Delivery Details -->
+                <div class="bg-white rounded-xl shadow-lg p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Delivery Details</h2>
+                        <button class="text-blue-600 font-semibold text-sm hover:text-blue-700">Call Driver</button>
+                    </div>
+                    <!-- Driver Info -->
+                    <div class="flex items-center mb-4 pb-4 border-b border-gray-100">
+                        <img src="https://placehold.co/50x50/3b82f6/FFFFFF?text=MR" class="w-12 h-12 rounded-full object-cover mr-4">
+                        <div>
+                            <p class="font-semibold text-gray-800">Mohammad Rahman</p>
+                            <p class="text-sm text-gray-500">Delivery Driver</p>
+                            <div class="flex items-center text-xs text-gray-500">
+                                ${starRating(4.8)}
+                                <span class="ml-1">(324 reviews)</span>
+                            </div>
+                        </div>
+                        <button class="ml-auto bg-green-100 text-green-600 p-2.5 rounded-full">${icon('phone', 'w-5 h-5')}</button>
+                    </div>
+                    <!-- Delivery Address -->
+                    <div class="flex items-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500 mr-3 mt-1 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.7c-4.4 0-8-3.6-8-8c0-4.4 8-12 8-12s8 7.6 8 12c0 4.4-3.6 8-8 8zm0-11c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/></svg>
+                        <div>
+                            <p class="font-semibold text-gray-800">Delivery Address</p>
+                            <p class="text-sm text-gray-600">123 Main Street, Apt 4B</p>
+                            <p class="text-sm text-gray-600">Dhaka 1205, Bangladesh</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Tracking Map -->
+                <div class="bg-white rounded-xl shadow-lg p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Live Tracking</h2>
+                        <span class="text-red-500 text-sm font-semibold flex items-center"><span class="dot !w-2 !h-2 !bg-red-500 mr-1"></span> Live</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">Est. arrival: 12 minutes</p>
+
+                    <div class="relative w-full h-48 rounded-xl overflow-hidden shadow-inner">
+                        <img src="https://placehold.co/400x192/E0F2F1/000000?text=Map+Placeholder" alt="Map" class="w-full h-full object-cover">
+                        <!-- Simulated bottom card on map -->
+                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white rounded-xl p-3 flex justify-around items-center w-[90%] shadow-xl">
+                            <div class="text-center">
+                                <p class="text-xs text-blue-200">Estimated arrival</p>
+                                <p class="text-lg font-bold">12 minutes</p>
+                            </div>
+                            <div class="w-px h-10 bg-blue-400"></div>
+                            <div class="text-center">
+                                <p class="text-xs text-blue-200">Distance</p>
+                                <p class="text-lg font-bold">2.3 km</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Updates -->
+                <div class="bg-white rounded-xl shadow-lg p-5 mb-4">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Live Updates</h2>
+                    ${liveUpdateItem(1, 'Driver is 2 minutes away', 'Just now')}
+                    ${liveUpdateItem(2, 'Driver picked up your order', '6 minutes ago')}
+                    ${liveUpdateItem(3, 'Order ready for pickup', '10 minutes ago')}
+                </div>
+            </div>
+
+            <!-- Fixed Footer Contact/Share Bar (Adjusted bottom-16 to sit above the main nav) -->
+            <footer class="fixed bottom-16 w-full max-w-md mx-auto p-4 bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl space-y-3 z-40">
+                <button class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition">
+                    Contact Support
+                </button>
+                <button class="w-full text-blue-600 font-bold py-3 hover:text-blue-700 transition">
+                    Share Tracking Link
+                </button>
+            </footer>
+        `;
+    };
+
+    const trackingOrderItem = (name, details, price) => `
+        <div class="flex justify-between items-center text-gray-700">
+            <div class="flex-grow">
+                <p class="font-semibold">${name}</p>
+                <p class="text-sm text-gray-500">${details}</p>
+            </div>
+            <p class="font-medium">$${price.toFixed(2)}</p>
+        </div>
+    `;
+
+    const liveUpdateItem = (step, title, time) => `
+        <div class="flex items-start pb-4">
+            <div class="flex flex-col items-center mr-4">
+                <div class="p-1 rounded-full bg-blue-100 text-blue-600 font-bold w-6 h-6 flex items-center justify-center text-xs flex-shrink-0">${step}</div>
+                ${step < 3 ? '<div class="stepper-line !h-10"></div>' : ''}
+            </div>
+            <div>
+                <p class="font-medium text-gray-800">${title}</p>
+                <p class="text-sm text-gray-500">${time}</p>
+            </div>
+        </div>
+    `;
+
+    // --- RENDER SCREEN 5: PROFILE PAGE (New Placeholder) ---
+
+    const renderProfileScreen = () => {
+        const screen = document.getElementById('profilepage');
+        screen.innerHTML = `
+            <!-- Header -->
+            <header class="sticky top-0 z-10 p-4 bg-white shadow-sm flex items-center border-b border-gray-100">
+                <h1 class="text-xl font-bold text-gray-800 flex-grow text-center">My Profile</h1>
+            </header>
+
+            <div class="p-4 space-y-6">
+                <div class="flex flex-col items-center p-8 bg-white rounded-xl shadow-lg">
+                    <img src="https://placehold.co/100x100/04D483/FFFFFF?text=USER" class="w-24 h-24 rounded-full object-cover border-4 border-green-500/50 mb-4">
+                    <p class="text-2xl font-bold text-gray-800">Jane Doe</p>
+                    <p class="text-sm text-gray-500">janedoe@example.com</p>
+                    <button class="mt-4 text-green-600 font-semibold flex items-center hover:text-green-700">${icon('edit', 'w-4 h-4 mr-1')} Edit Profile</button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg divide-y divide-gray-100">
+                    ${profileLink('Address Book', 'map-pin')}
+                    ${profileLink('Payment Methods', 'credit-card')}
+                    ${profileLink('Order History', 'clock')}
+                    ${profileLink('Notifications', 'bell')}
+                    ${profileLink('Settings', 'settings')}
+                    ${profileLink('Help & Support', 'help-circle')}
+                </div>
+
+                <button class="w-full bg-red-100 text-red-600 font-bold py-3 rounded-xl shadow-md hover:bg-red-200 transition">
+                    Log Out
+                </button>
+            </div>
+        `;
+    };
+
+    const profileLink = (text, iconName) => {
+        const iconMap = {
+            'map-pin': `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+            'credit-card': `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+            'clock': `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+            'bell': `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+            'settings': `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 .51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+            'help-circle': `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+        }
+
+        return `
+            <button class="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition" onclick="showScreen('homepage')">
+                <div class="flex items-center space-x-3">
+                    ${iconMap[iconName]}
+                    <span class="text-base text-gray-800">${text}</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        `;
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        // Initial render of all screens (only one will be visible)
+        renderHomepageScreen();
+        renderProductDetailsScreen();
+        renderCheckoutScreen();
+        renderTrackingScreen();
+        renderProfileScreen();
+
+        // Start on the homepage and set the nav button as active
+        const homeButton = document.querySelector('.nav-btn');
+        showScreen('homepage', homeButton);
+    };
+
+</script>
+
+</body>
+</html>
